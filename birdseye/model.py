@@ -3,8 +3,13 @@ from keras.layers import BatchNormalization, Concatenate, Conv2DTranspose, UpSam
 from tensorflow import keras
 
 
-def BirdsEye(input_shape=(255, 255, 3)):
-    inputs = keras.Input(shape=input_shape)
+def BirdsEye():
+    input_shape = (255, 255, 3)
+
+    front_input = keras.Input(shape=input_shape)
+    rear_input = keras.Input(shape=input_shape)
+    passenger_side_input = keras.Input(shape=input_shape)
+    driver_side_input = keras.Input(shape=input_shape)
 
     # Each input image is fed through ResNet50 with
     # locked layers to start
@@ -17,7 +22,7 @@ def BirdsEye(input_shape=(255, 255, 3)):
     for layer in resnet_front.layers:
         layer.trainable = False
     resnet_front._name = "resnet_front"
-    resnet_front = resnet_front(inputs)
+    resnet_front = resnet_front(front_input)
 
     resnet_rear = ResNet50(
         include_top=False,
@@ -28,7 +33,7 @@ def BirdsEye(input_shape=(255, 255, 3)):
     for layer in resnet_rear.layers:
         layer.trainable = False
     resnet_rear._name = "resnet_rear"
-    resnet_rear = resnet_rear(inputs)
+    resnet_rear = resnet_rear(rear_input)
 
     resnet_passenger_side = ResNet50(
         include_top=False,
@@ -39,7 +44,7 @@ def BirdsEye(input_shape=(255, 255, 3)):
     for layer in resnet_passenger_side.layers:
         layer.trainable = False
     resnet_passenger_side._name = "resnet_passenger_side"
-    resnet_passenger_side = resnet_passenger_side(inputs)
+    resnet_passenger_side = resnet_passenger_side(passenger_side_input)
 
     resnet_driver_side = ResNet50(
         include_top=False,
@@ -50,7 +55,7 @@ def BirdsEye(input_shape=(255, 255, 3)):
     for layer in resnet_driver_side.layers:
         layer.trainable = False
     resnet_driver_side._name = "resnet_driver_side"
-    resnet_driver_side = resnet_driver_side(inputs)
+    resnet_driver_side = resnet_driver_side(driver_side_input)
 
     # Output of a single ResNet50 at our input is (batch, 8, 8, 2048)
     # So our merged output is (batch, 8, 8, 8192)
@@ -78,6 +83,14 @@ def BirdsEye(input_shape=(255, 255, 3)):
     # 3 filters for 3 channels of our output
     outputs = Conv2DTranspose(3, 3, padding="same", activation="tanh")(net)
 
-    model = keras.Model(inputs, outputs)
+    model = keras.Model(
+        inputs=[
+            front_input,
+            rear_input,
+            passenger_side_input,
+            driver_side_input
+        ],
+        outputs=outputs
+    )
 
     return model
