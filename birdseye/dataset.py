@@ -117,7 +117,7 @@ class Dataloader(keras.utils.Sequence):
         pass
 
     def __len__(self) -> int:
-        return len(self.data)
+        return len(self.data) // self.batch_size
 
     def __getitem__(self, start):
         # Get our target ids
@@ -163,5 +163,5 @@ class Dataloader(keras.utils.Sequence):
                 img = self.apply_augmentation(img)
             driver_side_batch[index] = np.asarray(img, dtype=np.float32)
 
-        return front_batch, rear_batch, passenger_side_batch, \
-            driver_side_batch, overhead_batch
+        return [front_batch, rear_batch, passenger_side_batch,
+                driver_side_batch], overhead_batch
