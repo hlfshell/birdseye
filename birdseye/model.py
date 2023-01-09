@@ -4,7 +4,7 @@ from tensorflow import keras
 
 
 def BirdsEye():
-    input_shape = (255, 255, 3)
+    input_shape = (256, 256, 3)
 
     front_input = keras.Input(shape=input_shape)
     rear_input = keras.Input(shape=input_shape)
