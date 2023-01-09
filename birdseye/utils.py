@@ -4,9 +4,6 @@ from PIL import Image
 from typing import Tuple
 
 
-
-
-
 def image_to_tensor(img: Image) -> np.ndarray:
     """
     image_to_tensor: takes an incoming image and returns it as an equvialently
@@ -21,7 +18,7 @@ def image_to_tensor(img: Image) -> np.ndarray:
     img = img.convert("RGB")
 
     tensor = np.asarray(img, dtype=np.float32)
-    mapper = np.vectorize(values_mapper((0,255), (-1,1)))
+    mapper = np.vectorize(values_mapper((0, 255), (-1, 1)))
     tensor = mapper(tensor)
 
     return tensor
@@ -35,13 +32,11 @@ def tensor_to_image(tensor: np.ndarray) -> Image:
         :param tensor: np.ndarray or tensor of shape (255,255,3)
         :return Image: resulting PIL image
     """
-    mapper = np.vectorize(values_mapper((-1,1), (0,255)))
+    mapper = np.vectorize(values_mapper((-1, 1), (0, 255)))
     tensor = mapper(tensor).astype(np.uint8)
 
-    print(tensor)
-
     return Image.fromarray(tensor, 'RGB')
-    
+
 
 def resize_semantic_labels(tensor: np.ndarray, size: Tuple) -> np.ndarray:
     """
@@ -58,7 +53,7 @@ def resize_semantic_labels(tensor: np.ndarray, size: Tuple) -> np.ndarray:
     pass
 
 
-def values_mapper(from_range: Tuple[float, float], to_range: Tuple[float, float])-> callable:
+def values_mapper(from_range: Tuple[float, float], to_range: Tuple[float, float]) -> callable:
     """
     values: takes a from range and to range, and returns a function that maps
         a value between the ranges.
@@ -70,7 +65,7 @@ def values_mapper(from_range: Tuple[float, float], to_range: Tuple[float, float]
     :return callable: a function that maps from one range to the other
     """
     def mapper(value):
-        return (((value - from_range[0]) / (from_range[1] - from_range[0])) * \
-        (to_range[1]-to_range[0])) + to_range[0]
-    
+        return (((value - from_range[0]) / (from_range[1] - from_range[0])) *
+                (to_range[1]-to_range[0])) + to_range[0]
+
     return mapper

@@ -22,7 +22,7 @@ def transform_dataset():
 
     for dir in directories:
         files = os.listdir(f"{SOURCE_DIRECTORY}/{dir}")
-        
+
         # Group files so we collect them in sets of {frame#}_{type}.png
         images = {}
         for file in files:
@@ -40,7 +40,7 @@ def transform_dataset():
 
             if frame not in images:
                 images[frame] = {}
-            
+
             images[frame][image_type] = file
 
         # Now go over each collection and transfer it over with type dictating where
@@ -50,11 +50,15 @@ def transform_dataset():
                 file = images[capture][image_type]
                 target_file = f"{SOURCE_DIRECTORY}/{dir}/{file}"
                 if image_type == "birdseye":
-                    copy(target_file, f"{TARGET_DIRECTORY}/overhead/{short_id}_{file}")
+                    copy(target_file,
+                         f"{TARGET_DIRECTORY}/overhead/{short_id}_{file}")
                 elif image_type == "birdseye_semantic":
-                    copy(target_file, f"{TARGET_DIRECTORY}/semantic/{short_id}_{file}")
+                    copy(target_file,
+                         f"{TARGET_DIRECTORY}/semantic/{short_id}_{file}")
                 else:
-                    copy(target_file, f"{TARGET_DIRECTORY}/input/{short_id}_{file}")
+                    copy(target_file,
+                         f"{TARGET_DIRECTORY}/input/{short_id}_{file}")
+
 
 if __name__ == "__main__":
     transform_dataset()

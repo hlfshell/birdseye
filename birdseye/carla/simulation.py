@@ -8,7 +8,7 @@ from typing import Optional
 from uuid import uuid4
 
 
-TARGET_HERO_CAR = "vehicle.mini.cooper_s" # First car I ever bought
+TARGET_HERO_CAR = "vehicle.mini.cooper_s"  # First car I ever bought
 
 PEDESTRIAN_CROSSING_DEFAULT = 0.15
 DEFAULT_VEHICLES = 50
@@ -21,17 +21,16 @@ DEFAULT_OUTPUT_DIRECTORY = "./output/"
 
 class Simulation():
 
-
     def __init__(
         self,
-        run_id : Optional[str] = None,
-        map : Optional[str] = None,
-        output_directory : Optional[str] = None,
-        vehicles : int = DEFAULT_VEHICLES,
-        pedestrians : int = DEFAULT_PEDESTRIANS,
-        pedestrian_cross_percentage : float = PEDESTRIAN_CROSSING_DEFAULT,
-        hero_spawn_point = None,
-        weather_params = None,
+        run_id: Optional[str] = None,
+        map: Optional[str] = None,
+        output_directory: Optional[str] = None,
+        vehicles: int = DEFAULT_VEHICLES,
+        pedestrians: int = DEFAULT_PEDESTRIANS,
+        pedestrian_cross_percentage: float = PEDESTRIAN_CROSSING_DEFAULT,
+        hero_spawn_point=None,
+        weather_params=None,
     ):
         if run_id is None:
             run_id = uuid4()
@@ -75,14 +74,15 @@ class Simulation():
 
         self.vehicle_blueprints = self.blueprint_library.filter('vehicle')
         # Filter out banned vehicles
-        self.vehicle_blueprints = [blueprint for blueprint in self.vehicle_blueprints if blueprint.id not in BANNED_VEHICLES]
+        self.vehicle_blueprints = [
+            blueprint for blueprint in self.vehicle_blueprints if blueprint.id not in BANNED_VEHICLES]
 
         self._recording = False
         if output_directory is None:
             output_directory = DEFAULT_OUTPUT_DIRECTORY
         self.output_directory = output_directory
         # Ensure that the directory is created and ready to receive data
-        
+
         Path(f"{self.output_directory}/{self.run_id}").mkdir(parents=True, exist_ok=True)
 
         self.actors = []
@@ -93,8 +93,7 @@ class Simulation():
         self.default_pedestrian_cross_percentage = pedestrian_cross_percentage
         self.default_hero_spawn_point = hero_spawn_point
 
-
-    def spawn_hero_vehicle(self, spawn_point = None):
+    def spawn_hero_vehicle(self, spawn_point=None):
         blueprint = self.blueprint_library.find(TARGET_HERO_CAR)
         # Sunburnt Orange; the color of my first Mini
         blueprint.set_attribute('color', "152, 64, 42")
@@ -103,7 +102,7 @@ class Simulation():
             spawn_point = self.default_hero_spawn_point
         elif spawn_point is None:
             spawn_point = choice(self.world.get_map().get_spawn_points())
-        
+
         self.hero_vehicle = self.world.spawn_actor(blueprint, spawn_point)
         self.actors.append(self.hero_vehicle)
 
@@ -136,7 +135,8 @@ class Simulation():
         if crossing_percentage is None:
             crossing_percentage = self.default_pedestrian_cross_percentage
 
-        walker_blueprints = self.blueprint_library.filter('walker.pedestrian.*')
+        walker_blueprints = self.blueprint_library.filter(
+            'walker.pedestrian.*')
 
         # 1. Find every possible spawn point
         spawn_points = []
@@ -151,7 +151,8 @@ class Simulation():
         batch_commands = []
         for spawn_point in spawn_points:
             walker_bp = choice(walker_blueprints)
-            create_walker_command = carla.command.SpawnActor(walker_bp, spawn_point)
+            create_walker_command = carla.command.SpawnActor(
+                walker_bp, spawn_point)
             batch_commands.append(create_walker_command)
 
         results = self.client.apply_batch_sync(batch_commands, True)
@@ -161,20 +162,21 @@ class Simulation():
         for result in results:
             if not result.error:
                 pedestrian_ids.append(result.actor_id)
-        
+
         # 3. Create a walker controller for each walker we spawned
         batch_commands = []
         walker_controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
         for pedestrian in pedestrian_ids:
-            batch_commands.append(carla.command.SpawnActor(walker_controller_bp, carla.Transform(), pedestrian))
-        
+            batch_commands.append(carla.command.SpawnActor(
+                walker_controller_bp, carla.Transform(), pedestrian))
+
         results = self.client.apply_batch_sync(batch_commands, True)
 
         controller_ids = []
         for result in results:
             if not result.error:
                 controller_ids.append(result.actor_id)
-        
+
         # 4. Wait for a tick to ensure client receives the last transform of the pedestrians we have just created
         self.world.tick()
 
@@ -186,7 +188,8 @@ class Simulation():
             # start walker
             controller.start()
             # set walk to random point
-            controller.go_to_location(self.world.get_random_location_from_navigation())
+            controller.go_to_location(
+                self.world.get_random_location_from_navigation())
 
         self.actors += self.world.get_actors(pedestrian_ids)
         self.actors += controllers
@@ -199,13 +202,13 @@ class Simulation():
         except Exception as e:
             raise e
 
-    def run(self, time : int):
+    def run(self, time: int):
         try:
             sleep(time)
         finally:
             self.cleanup()
-    
-    def launch(self, time : int):
+
+    def launch(self, time: int):
         # Spawn everything
         self.spawn_everything()
 
@@ -221,10 +224,14 @@ class Simulation():
 
     def spawn_cameras(self, vehicle):
         front_camera_transform = carla.Transform(carla.Location(x=1, z=1.2))
-        rear_camera_transform = carla.Transform(carla.Location(x=-1.7, z=1.2), carla.Rotation(yaw=180))
-        passenger_side_camera_transform = carla.Transform(carla.Location(y=0.75, z=1.2), carla.Rotation(yaw=145))
-        driver_side_camera_transform = carla.Transform(carla.Location(y=-0.75, z=1.2), carla.Rotation(yaw=-145))
-        birdseye_camera_transform = carla.Transform(carla.Location(z=50), carla.Rotation(pitch=-90))
+        rear_camera_transform = carla.Transform(
+            carla.Location(x=-1.7, z=1.2), carla.Rotation(yaw=180))
+        passenger_side_camera_transform = carla.Transform(
+            carla.Location(y=0.75, z=1.2), carla.Rotation(yaw=145))
+        driver_side_camera_transform = carla.Transform(
+            carla.Location(y=-0.75, z=1.2), carla.Rotation(yaw=-145))
+        birdseye_camera_transform = carla.Transform(
+            carla.Location(z=50), carla.Rotation(pitch=-90))
 
         camera_blueprint = self.blueprint_library.find('sensor.camera.rgb')
         camera_blueprint.set_attribute("image_size_x", "800")
@@ -232,16 +239,23 @@ class Simulation():
         camera_blueprint.set_attribute("motion_blur_intensity", str(0.0))
         camera_blueprint.set_attribute("blur_amount", str(0.0))
 
-        semantic_camera_blueprint = self.blueprint_library.find('sensor.camera.semantic_segmentation')
+        semantic_camera_blueprint = self.blueprint_library.find(
+            'sensor.camera.semantic_segmentation')
         semantic_camera_blueprint.set_attribute("image_size_x", "800")
         semantic_camera_blueprint.set_attribute("image_size_y", "800")
 
-        front_camera = self.world.spawn_actor(camera_blueprint, front_camera_transform, attach_to=vehicle)
-        rear_camera = self.world.spawn_actor(camera_blueprint, rear_camera_transform, attach_to=vehicle)
-        passenger_side_camera = self.world.spawn_actor(camera_blueprint, passenger_side_camera_transform, attach_to=vehicle)
-        driver_side_camera = self.world.spawn_actor(camera_blueprint, driver_side_camera_transform, attach_to=vehicle)
-        birdseye_camera = self.world.spawn_actor(camera_blueprint, birdseye_camera_transform, attach_to=vehicle)
-        semantic_birdseye_camera = self.world.spawn_actor(semantic_camera_blueprint, birdseye_camera_transform, attach_to=vehicle)
+        front_camera = self.world.spawn_actor(
+            camera_blueprint, front_camera_transform, attach_to=vehicle)
+        rear_camera = self.world.spawn_actor(
+            camera_blueprint, rear_camera_transform, attach_to=vehicle)
+        passenger_side_camera = self.world.spawn_actor(
+            camera_blueprint, passenger_side_camera_transform, attach_to=vehicle)
+        driver_side_camera = self.world.spawn_actor(
+            camera_blueprint, driver_side_camera_transform, attach_to=vehicle)
+        birdseye_camera = self.world.spawn_actor(
+            camera_blueprint, birdseye_camera_transform, attach_to=vehicle)
+        semantic_birdseye_camera = self.world.spawn_actor(
+            semantic_camera_blueprint, birdseye_camera_transform, attach_to=vehicle)
 
         self.cameras.append(front_camera)
         self.cameras.append(rear_camera)
@@ -249,48 +263,54 @@ class Simulation():
         self.cameras.append(driver_side_camera)
         self.cameras.append(birdseye_camera)
         self.cameras.append(semantic_birdseye_camera)
-        
+
         front_camera.listen(self._front_rgb_camera_listener)
         rear_camera.listen(self._rear_rgb_camera_listener)
         passenger_side_camera.listen(self._passenger_side_rgb_camera_listener)
         driver_side_camera.listen(self._driver_side_rgb_camera_listener)
         birdseye_camera.listen(self._birdseye_rgb_camera_listener)
-        semantic_birdseye_camera.listen(self._birdseye_semantic_camera_listener)
-
+        semantic_birdseye_camera.listen(
+            self._birdseye_semantic_camera_listener)
 
     def _front_rgb_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_front.png")
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_front.png")
 
     def _rear_rgb_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_rear.png")
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_rear.png")
 
     def _passenger_side_rgb_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_passenger_side.png")
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_passenger_side.png")
 
     def _driver_side_rgb_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_driver_side.png")
-    
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_driver_side.png")
+
     def _birdseye_rgb_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_birdseye.png")
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_birdseye.png")
 
     def _birdseye_semantic_camera_listener(self, image):
         if (not self._recording) or (image.frame % FRAME_SELECTION_FREQUENCY != 0):
             return
-        image.save_to_disk(f"{self.output_directory}/{self.run_id}/{image.frame}_birdseye_semantic.png")
+        image.save_to_disk(
+            f"{self.output_directory}/{self.run_id}/{image.frame}_birdseye_semantic.png")
 
     def start_recording(self):
         self._recording = True
-    
+
     def stop_recording(self):
         self._recording = False
 
@@ -299,7 +319,9 @@ class Simulation():
 
         for camera in self.cameras:
             camera.destroy()
-        self.client.apply_batch([carla.command.DestroyActor(actor) for actor in self.actors])
+        self.client.apply_batch(
+            [carla.command.DestroyActor(actor) for actor in self.actors])
+
 
 # We don't want to confuse the semantic camera by having pedestrians on more often than
 # pedestrians themselves - so for now, no bikes on the road.
