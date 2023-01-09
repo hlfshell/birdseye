@@ -7,7 +7,8 @@ from typing import Dict, Optional
 import numpy as np
 from PIL import Image
 from tensorflow import keras
-from utils import image_to_tensor, split_dataset_filename
+
+from birdseye.utils import image_to_tensor, split_dataset_filename
 
 
 class Dataloader(keras.utils.Sequence):
@@ -28,7 +29,8 @@ class Dataloader(keras.utils.Sequence):
         else:
             self.data = data
 
-        self.ids = shuffle(self.data.keys())
+        self.ids = list(self.data.keys())
+        shuffle(self.ids)
 
     def _init_data(self, dataset_folder):
         # Self.data will contain all images for each set, input *and* output
@@ -68,15 +70,15 @@ class Dataloader(keras.utils.Sequence):
             self.data[id][camera_type] = os.path.join(overhead_folder, file)
 
         # Go over all the data and remove any sets that do not have 5 images
-        for id in self.data:
+        for id in list(self.data.keys()):
             if len(self.data[id]) != 5:
                 del self.data[id]
 
     def split_off_percentage(
         self,
         percent: float,
-        batch_size: Optional[float],
-        data_augmentation: Optional[bool]
+        batch_size: Optional[float] = None,
+        data_augmentation: Optional[bool] = None
     ) -> Dataloader:
         """
         split_off_percentage: accepts a given percentage, and then returns a
@@ -96,13 +98,18 @@ class Dataloader(keras.utils.Sequence):
         if data_augmentation is None:
             data_augmentation = self.data_augmentation
 
-        sets = self.data.keys()
-        split = shuffle(sets)[int(len(sets)*percent)]
+        sets = list(self.data.keys())
+        shuffle(sets)
+        split = sets[0:int(len(sets)*percent)]
         data = {}
 
         for id in split:
             data[id] = self.data[id]
             del self.data[id]
+
+        # Reset ids
+        self.ids = list(self.data.keys())
+        shuffle(self.ids)
 
         return Dataloader(batch_size, "", data_augmentation, data=data)
 
@@ -116,7 +123,7 @@ class Dataloader(keras.utils.Sequence):
         # Get our target ids
         index = start * self.batch_size
         ids = self.ids[index: index+self.batch_size]
-        current_sets = [self.data[id] for id in ids]
+        sets = [self.data[id] for id in ids]
 
         tensor_size = (self.batch_size, 256, 256, 3)
         overhead_batch = np.zeros(tensor_size)
@@ -125,31 +132,33 @@ class Dataloader(keras.utils.Sequence):
         passenger_side_batch = np.zeros(tensor_size)
         driver_side_batch = np.zeros(tensor_size)
 
-        for index, set in enumerate(current_sets):
+        for index, set in enumerate(sets):
             # Overhead target
-            img = Image.open(set["birdseye"])
+            img = Image.open(set["birdseye"]).resize((256, 256)).convert('RGB')
             overhead_batch[index] = image_to_tensor(img)
 
             # Front input
-            img = Image.open(set["front"])
+            img = Image.open(set["front"]).resize((256, 256)).convert('RGB')
             if self.data_augmentation:
                 img = self.apply_augmentation(img)
             front_batch[index] = np.asarray(img, dtype=np.float32)
 
             # Rear input
-            img = Image.open(set["rear"])
+            img = Image.open(set["rear"]).resize((256, 256)).convert('RGB')
             if self.data_augmentation:
                 img = self.apply_augmentation(img)
             rear_batch[index] = np.asarray(img, dtype=np.float32)
 
             # Passenger side input
-            img = Image.open(set["passenger_side"])
+            img = Image.open(set["passenger_side"]).resize(
+                (256, 256)).convert('RGB')
             if self.data_augmentation:
                 img = self.apply_augmentation(img)
             passenger_side_batch[index] = np.asarray(img, dtype=np.float32)
 
             # Driver side input
-            img = Image.open(set["driver_side"])
+            img = Image.open(set["driver_side"]).resize(
+                (256, 256)).convert('RGB')
             if self.data_augmentation:
                 img = self.apply_augmentation(img)
             driver_side_batch[index] = np.asarray(img, dtype=np.float32)
