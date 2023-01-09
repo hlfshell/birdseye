@@ -28,7 +28,7 @@ def train_birdseye(
     model.compile(optimizer='adam', loss='mse')
 
     callbacks = [
-        ModelCheckpoint(f"{checkpoint_directory}/unet.h5",
+        ModelCheckpoint(f"{checkpoint_directory}/birdseye.h5",
                         save_best_only=True),
         BackupAndRestore(backup_dir=f"{checkpoint_directory}/"),
         TensorBoard(log_dir=logdir, histogram_freq=1)
