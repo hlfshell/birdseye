@@ -56,7 +56,7 @@ def resize_semantic_labels(tensor: np.ndarray, size: Tuple) -> np.ndarray:
 
 def values_mapper(from_range: Tuple[float, float], to_range: Tuple[float, float]) -> callable:
     """
-    values: takes a from range and to range, and returns a function that maps
+    values_mapper: takes a from range and to range, and returns a function that maps
         a value between the ranges.
 
     :param from_range: Tuple[float, float] - the range the value currently
@@ -70,3 +70,31 @@ def values_mapper(from_range: Tuple[float, float], to_range: Tuple[float, float]
                 (to_range[1]-to_range[0])) + to_range[0]
 
     return mapper
+
+
+def split_dataset_filename(filename: str) -> Tuple[str, str, str]:
+    """
+    split_dataset_filename: datset files are saved in the format of:
+        runid_frame_camera.png
+        ...where runid is the particular run, frame is the instanenous
+        moment id, and camera is a string of front, rear, passenger_side,
+        or driver_side. From this we can determine information. This
+        helper function simply takes a filename and returns the runid,
+        frame, and camera type.
+
+    :param filename: str
+    :return Tuple[str, str, str] - A tuple of the (runid, frame, camera_type)
+    """
+
+    splits = filename.split("_")
+    runid = splits[0]
+    frame = splits[1]
+
+    # Note that some of our camera types also have a "_" in it, so deal with
+    # that approiately:
+    camera_type = "_".join(splits[2:])
+
+    # Finally remove the .png
+    camera_type = camera_type.split(".")[0]
+
+    return runid, frame, camera_type
