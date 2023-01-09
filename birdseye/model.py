@@ -1,11 +1,6 @@
-from tensorflow import keras
 from keras.applications import ResNet50
-from keras.layers import (
-    BatchNormalization,
-    Concatenate,
-    Conv2DTranspose,
-    UpSampling2D
-)
+from keras.layers import BatchNormalization, Concatenate, Conv2DTranspose, UpSampling2D
+from tensorflow import keras
 
 
 def BirdsEye(input_shape=(255, 255, 3)):

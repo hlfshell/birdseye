@@ -1,12 +1,11 @@
-import carla
-
-from carla import WeatherParameters
 from pathlib import Path
 from random import choice
 from time import sleep
 from typing import Optional
 from uuid import uuid4
 
+import carla
+from carla import WeatherParameters
 
 TARGET_HERO_CAR = "vehicle.mini.cooper_s"  # First car I ever bought
 

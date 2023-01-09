@@ -1,7 +1,7 @@
-import numpy as np
-
-from PIL import Image
 from typing import Tuple
+
+import numpy as np
+from PIL import Image
 
 
 def image_to_tensor(img: Image) -> np.ndarray:
