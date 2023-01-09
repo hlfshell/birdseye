@@ -4,6 +4,30 @@ import numpy as np
 from PIL import Image
 
 
+def infer(
+    model,
+    front_image: Image,
+    rear_image: Image,
+    passenger_side_image: Image,
+    driver_side_image: Image
+):
+    input_size = (1, 256, 256, 3)
+
+    front_input = np.zeros(input_size)
+    front_input[0] = np.asarray(front_image.resize((256, 256)).convert('RGB'))
+    rear_input = np.zeros(input_size)
+    rear_input[0] = np.asarray(rear_image.resize((256, 256)).convert('RGB'))
+    passenger_side_input = np.zeros(input_size)
+    passenger_side_input[0] = np.asarray(
+        passenger_side_image.resize((256, 256)).convert('RGB'))
+    driver_side_input = np.zeros(input_size)
+    driver_side_input[0] = np.asarray(
+        driver_side_image.resize((256, 256)).convert('RGB'))
+
+    return model.predict([front_input, rear_input,
+                          passenger_side_input, driver_side_input])[0]
+
+
 def image_to_tensor(img: Image) -> np.ndarray:
     """
     image_to_tensor: takes an incoming image and returns it as an equvialently
