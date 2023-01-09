@@ -45,7 +45,8 @@ def resize_semantic_labels(tensor: np.ndarray, size: Tuple) -> np.ndarray:
         due to the nature of the labels - we can't do any interpolation or
         averaging of the values as they are markers of a selected label, not
         a value that has particular meaning. Put another way - if a category 2
-        pixel is near a category 3 pixel, we gain no meaning from a value of 2.5.
+        pixel is near a category 3 pixel, we gain no meaning from a value of
+        2.5
 
         :param size: Tuple of size (x,y, categories)
         :return np.ndarray -> The resized tensor
