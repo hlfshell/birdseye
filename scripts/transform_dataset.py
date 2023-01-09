@@ -1,7 +1,7 @@
+import os
 from pathlib import Path
 from random import randint
 from shutil import copy
-import os
 
 SOURCE_DIRECTORY = "./output"
 TARGET_DIRECTORY = "./dataset"
