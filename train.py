@@ -1,7 +1,7 @@
-from birdseye.model import BirdsEye
-from birdseye.train import train_birdseye
+from birdseye.naive.model import BirdsEye
+from birdseye.naive.train import train_birdseye_naive
 
 model = BirdsEye()
-model = train_birdseye(model, 50, 8, "./dataset")
+model = train_birdseye_naive(model, 50, 8, "./dataset")
 
 model.save("./finished_model")

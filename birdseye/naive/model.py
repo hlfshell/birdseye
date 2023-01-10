@@ -3,7 +3,7 @@ from keras.layers import BatchNormalization, Concatenate, Conv2DTranspose, UpSam
 from tensorflow import keras
 
 
-def BirdsEye():
+def BirdsEyeNaive():
     input_shape = (256, 256, 3)
 
     front_input = keras.Input(shape=input_shape)

@@ -32,7 +32,7 @@ class Dataloader(keras.utils.Sequence):
         self.ids = list(self.data.keys())
         shuffle(self.ids)
 
-    def _init_data(self, dataset_folder):
+    def _init_data_(self, dataset_folder):
         # Self.data will contain all images for each set, input *and* output
         self.data = {}
 

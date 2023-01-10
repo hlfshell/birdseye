@@ -2,10 +2,10 @@ from typing import Optional
 
 from keras.callbacks import BackupAndRestore, ModelCheckpoint, TensorBoard
 
-from birdseye.dataset import Dataloader
+from birdseye.naive.dataset import Dataloader
 
 
-def train_birdseye(
+def train_birdseye_naive(
     model,
     epochs: int,
     batch_size: int,
