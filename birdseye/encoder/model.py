@@ -65,3 +65,10 @@ def Decoder():
     model = keras.Model(inputs=inputs, outputs=outputs, name="decoder")
 
     return model
+
+
+def EncoderDecoder(encoder, decoder):
+    encoder_input = keras.Input((256, 256, 3), name="encoder input")
+    encoder_output = encoder(encoder_input)
+    decoder_output = decoder(encoder_output)
+    return keras.Model(encoder_input, decoder_output, name="encoder/decoder")
