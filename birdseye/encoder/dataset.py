@@ -3,13 +3,13 @@ from __future__ import annotations
 import os
 from os.path import join
 from random import shuffle
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from PIL import Image
 from tensorflow import keras
 
-from birdseye.utils import image_to_tensor, split_dataset_filename
+from birdseye.utils import image_to_tensor
 
 
 class Dataloader(keras.utils.Sequence):
@@ -61,12 +61,12 @@ class Dataloader(keras.utils.Sequence):
         data = self.data[index: index+self.batch_size]
 
         inputs = np.zeros((self.batch_size, 256, 256, 3))
+        targets = np.zeros_like(inputs)
 
-        for file in data:
+        for index, file in enumerate(data):
             filepath = os.path.join(self.data_folder, "input", file)
             img = Image.open(filepath).resize((256, 256)).convert('RGB')
-            inputs[0] = np.asarray(img, dtype=np.float32)
-
-        targets = np.copy(inputs)
+            inputs[index] = np.asarray(img, dtype=np.float32)
+            targets[index] = image_to_tensor(img)
 
         return inputs, targets
