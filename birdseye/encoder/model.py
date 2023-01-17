@@ -4,6 +4,8 @@ from keras.layers import (
     BatchNormalization,
     Conv2D,
     Conv2DTranspose,
+    Dense,
+    Flatten,
     UpSampling2D,
     add,
 )
@@ -72,3 +74,25 @@ def EncoderDecoder(encoder, decoder):
     encoder_output = encoder(encoder_input)
     decoder_output = decoder(encoder_output)
     return keras.Model(encoder_input, decoder_output, name="encoder/decoder")
+
+
+def Discriminator():
+    inputs = keras.Input((256, 256, 3))
+    net = inputs
+
+    for filters in [256, 128, 64, 32, 16]:
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = BatchNormalization()(net)
+        net = Activation("relu")(net)
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = BatchNormalization()(net)
+        net = Activation("relu")(net)
+
+    net = Flatten()(net)
+    net = Dense(128, "relu")(net)
+    net = Dense(64, "relu")(net)
+    outputs = Dense(1, "sigmoid")(net)
+
+    model = keras.Model(inputs=inputs, outputs=outputs, name="discriminator")
+
+    return model
