@@ -1,4 +1,5 @@
 from keras.applications import ResNet50
+from keras.initializers import RandomNormal
 from keras.layers import (
     Activation,
     BatchNormalization,
@@ -94,5 +95,27 @@ def Discriminator():
     outputs = Dense(1, "sigmoid")(net)
 
     model = keras.Model(inputs=inputs, outputs=outputs, name="discriminator")
+
+    return model
+
+
+def Critic():
+    inputs = keras.Input((256, 256, 3))
+    net = inputs
+
+    for filters in [256, 128, 64, 32, 16]:
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = Activation("relu")(net)
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = Activation("relu")(net)
+
+    net = Flatten()(net)
+    outputs = Dense(
+        1,
+        activation=None,
+        kernel_initializer=RandomNormal(mean=0., stddev=0.02)
+    )(net)
+
+    model = keras.Model(inputs=inputs, outputs=outputs, name="critic")
 
     return model
