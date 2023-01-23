@@ -112,7 +112,7 @@ def Critic():
     net = Flatten()(net)
     outputs = Dense(
         1,
-        activation=None,
+        activation="tanh",
         kernel_initializer=RandomNormal(mean=0., stddev=0.02)
     )(net)
 

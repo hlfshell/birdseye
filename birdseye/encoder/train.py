@@ -1,4 +1,5 @@
 from functools import partial
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -7,7 +8,7 @@ from keras import Model
 from keras import backend as K
 from keras.callbacks import BackupAndRestore, ModelCheckpoint, TensorBoard
 from keras.layers import Input, Layer
-from keras.losses import MeanAbsoluteError
+from keras.losses import MeanAbsoluteError, MeanSquaredError
 from keras.optimizers import Adam
 from tensorflow import GradientTape
 
@@ -221,6 +222,7 @@ def train_birdseye_encoder_with_discriminator3(
     critic_trains_per_generator: int = 5,
 ):
     data = Dataloader(batch_size, dataset_folder, camera_type)
+    Path(f"{checkpoint_directory}/models").mkdir(parents=True, exist_ok=True)
 
     # Setup the encoder/decoder model
     model = EncoderDecoder(Encoder(), Decoder())
@@ -232,14 +234,15 @@ def train_birdseye_encoder_with_discriminator3(
     generator_epoch = 0
 
     critic.compile(
-        loss=wasserstein_loss,
+        loss=MeanSquaredError(),
         optimizer=Adam(learning_rate=0.0002)
     )
     model.compile(
-        loss=partial(generator_loss, base_loss=MeanAbsoluteError(),
+        loss=partial(generator_loss, base_loss=MeanSquaredError(),
                      discriminator=critic),
         optimizer=Adam(learning_rate=0.0002)
     )
+    model.run_eagerly = True
 
     real = np.ones((batch_size, 1), dtype=np.float32)
     fake = -1*np.ones((batch_size, 1), dtype=np.float32)
@@ -277,13 +280,11 @@ def train_birdseye_encoder_with_discriminator3(
                     end="\r"
                 )
             critic_epoch += 1
-
         print("")
 
         trainable_toggle(critic, False)
         trainable_toggle(model, True)
 
-        print("entering generator loop")
         for index in range(len(data)):
             raw_imgs, expected_out = data[index]
 
@@ -300,6 +301,13 @@ def train_birdseye_encoder_with_discriminator3(
             )
 
         print("")
+
+        # Save the models by epoch
+        critic.save_weights(
+            f"{checkpoint_directory}/models/critic_{epoch+1}.h5")
+        model.save_weights(
+            f"{checkpoint_directory}/models/encoderdecoder_{epoch+1}.h5")
+
     return model
 
 
@@ -332,9 +340,18 @@ def wasserstein_discriminator_loss(y_true, y_pred, discriminator):
 
 
 def generator_loss(y_true, y_pred, base_loss, discriminator):
-    loss = wasserstein_discriminator_loss(y_true, y_pred, discriminator)
-    loss += base_loss(y_true, y_pred)
-    return loss
+    discriminator_preds = discriminator(y_pred)
+    discriminator_loss = 1 - discriminator_preds
+    base_loss = base_loss(y_true, y_pred)
+    # print(" ")
+    # print("==")
+    # print(discriminator_preds)
+    # print(discriminator_loss)
+    # print(base_loss)
+    # print(discriminator_loss + base_loss)
+    # print("==")
+    # print(" ")
+    return discriminator_loss + base_loss
 
 
 def gradient_penalty_loss_interpolated(y_true, y_pred, interpolated_samples):
