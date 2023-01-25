@@ -29,11 +29,11 @@ def train_encoder_decoder():
 def train_enc_dec_disc():
     model = train_birdseye_encoder_with_discriminator3(
         "front",
-        50,
-        1,
+        250,
+        8,
         "./dataset"
     )
-    model.save("./encoder_w_disc_model")
+    model.save_weights("./encoder_w_disc_model.h5")
 
 
 if __name__ == "__main__":
