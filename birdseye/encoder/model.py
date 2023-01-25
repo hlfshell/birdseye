@@ -113,9 +113,31 @@ def Critic():
     outputs = Dense(
         1,
         activation="tanh",
-        kernel_initializer=RandomNormal(mean=0., stddev=0.02)
+        # kernel_initializer=RandomNormal(mean=0., stddev=0.02)
     )(net)
 
     model = keras.Model(inputs=inputs, outputs=outputs, name="critic")
+
+    return model
+
+
+def Critic2():
+    inputs = keras.Input((256, 256, 3))
+    net = inputs
+
+    for filters in [256, 128, 64, 32, 16]:
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = BatchNormalization()(net)
+        net = Activation("leaky_relu")(net)
+        net = Conv2D(filters, 3, padding="same")(net)
+        net = BatchNormalization()(net)
+        net = Activation("leaky_relu")(net)
+
+    net = Flatten()(net)
+    net = Dense(128, "leaky_relu")(net)
+    net = Dense(64, "leaky_relu")(net)
+    outputs = Dense(1, "tanh")(net)
+
+    model = keras.Model(inputs=inputs, outputs=outputs, name="discriminator")
 
     return model
