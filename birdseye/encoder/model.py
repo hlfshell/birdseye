@@ -82,10 +82,10 @@ def Decoder2():
 
     # Let's build up and outwards
     for filters in [32, 64, 128, 256]:
+        net = UpSampling2D(2)(net)
         net = Conv2D(filters, 3, padding="same", activation="leaky_relu")(net)
         net = Conv2D(filters, 3, padding="same", activation="leaky_relu")(net)
         net = Conv2D(2 * filters, 3, padding="same", activation="leaky_relu")(net)
-        net = UpSampling2D(2)(net)
 
         # Handle skip layer
         skip_memory = UpSampling2D(2)(skip_memory)
