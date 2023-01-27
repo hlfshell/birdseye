@@ -1,3 +1,4 @@
+import os
 from functools import partial
 from pathlib import Path
 from typing import Optional
@@ -55,212 +56,73 @@ def train_birdseye_encoder(
 
 
 def train_birdseye_encoder_with_discriminator(
-    encoder,
-    decoder,
-    discriminator,
     camera_type: str,
     epochs: int,
     batch_size: int,
     dataset_folder: str,
     validation_size: float = 0.25,
     checkpoint_directory: str = "./checkpoints/",
-    logdir: str = "./logdir"
+    critic_trains_per_generator: int = 1,
 ):
     data = Dataloader(batch_size, dataset_folder, camera_type)
+    # Split off 15% of our dataset for validation testing
+    validation_data = data.split_off_percentage(0.15)
 
-    # Setup the encoder/decoder model
-    model = EncoderDecoder(encoder, decoder)
-    encoder_decoder_optimizer = Adam(learning_rate=0.005)
-    model.compile(optimizer=encoder_decoder_optimizer)
-
-    # Setup the discriminator model
-    discriminator_optimizer = Adam()
-    discriminator.compile(optimizer=discriminator_optimizer)
-
-    mas_loss = MeanAbsoluteError()
-
-    # TODO its a for loop for epoch AND dataset size
-    for epoch in range(epochs):
-        for index in range(len(data)):
-            X, Y = data[index]
-
-            with GradientTape(persistent=True) as tape:
-                # Generate our fake outputs via the encoder/decoder combo
-                # Then we convert it to 256 color range from (-1,1) range
-                generated = model(X, training=True)
-                # Convert the output to images for discriminator usage
-                generated_imgs = np.asarray(
-                    [np.asarray(tensor_to_image(img), dtype=np.uint8)
-                     for img in generated])
-
-                # Get the discriminator (non-trained) results from the
-                # generated # images
-                discriminator_output = discriminator(generated_imgs)
-
-                # Train on 50/50 fake and real
-                fake_output = discriminator(generated_imgs, training=True)
-                real_output = discriminator(X, training=True)
-
-                # Take the average loss across all of them.
-                fake_loss = fake_output
-                real_loss = 1 - real_output
-                discriminator_loss_combined = 0.5 * (fake_loss + real_loss)
-
-                # Now train the generator for this epoch
-                mas_batch_loss = mas_loss(Y, generated)
-                encoder_decoder_combined_loss = mas_batch_loss + \
-                    (1 - discriminator_output)
-
-            encoder_decoder_gradients = tape.gradient(
-                encoder_decoder_combined_loss, model.trainable_weights)
-            discriminator_gradients = tape.gradient(
-                discriminator_loss_combined, discriminator.trainable_weights)
-
-            # Apply gradients from losses
-            encoder_decoder_optimizer.apply_gradients(
-                zip(encoder_decoder_gradients, model.trainable_weights))
-            discriminator_optimizer.apply_gradients(
-                zip(discriminator_gradients, discriminator.trainable_weights))
-
-            raise "wait really?"  # stopping here because I have more to do
-            # but i'm stuck above so....
-
-
-def train_birdseye_encoder_with_discriminator2(
-    camera_type: str,
-    epochs: int,
-    batch_size: int,
-    dataset_folder: str,
-    validation_size: float = 0.25,
-    checkpoint_directory: str = "./checkpoints/",
-    logdir: str = "./logdir",
-    critic_trains_per_generator: int = 5,
-):
-    data = Dataloader(batch_size, dataset_folder, camera_type)
-
-    # Setup the encoder/decoder model
-    model = EncoderDecoder(Encoder(), Decoder())
-    # critic model
-    critic = Critic()
-
-    trainable_toggle(model, False)
-
-    # Setup the discriminator
-    real_images = Input(shape=(256, 256, 3))
-    generated_images_input = Input(shape=(256, 256, 3))
-    fake_images = model(generated_images_input)
-    interpolated_images = InterpolateLayer(
-        batch_size)([real_images, fake_images])
-    interpolated_output = critic(interpolated_images)
-
-    # Discriminator is used against real and fake images
-    real = critic(real_images)
-    fake = critic(fake_images)
-
-    # Build the loss function next
-    partial_gp_loss = partial(gradient_penalty_loss_interpolated,
-                              interpolated_samples=interpolated_images)
-    partial_gp_loss.__name__ = "gradient_penalty"  # Required by Keras
-
-    adversarial = Model(inputs=[real_images, generated_images_input], outputs=[
-        real, fake, interpolated_output], name="adversarial")
-    adversarial.compile(
-        loss=[wasserstein_loss, wasserstein_loss, partial_gp_loss],
-        optimizer=Adam(learning_rate=0.0002),
-        loss_weights=[1, 1, 10]  # partial gradient loss is 10x others
-    )
-
-    trainable_toggle(critic, True)
-
-    valid = np.ones((batch_size, 1), dtype=np.float32)
-    fake = -1 * np.ones((batch_size, 1), dtype=np.float32)
-    ignored = np.zeros((batch_size, 1), dtype=np.float32)
-
-    total_epochs = 0
-    critic_epoch = 0
-    generator_epoch = 0
-
-    for epoch in range(epochs):
-        critic_avg_losses = []
-        generator_avg_losses = []
-
-        # Make the critic trainable, the generator not trainable
-        trainable_toggle(critic, True)
-        trainable_toggle(model, False)
-
-        for _ in range(critic_trains_per_generator):
-            for index in range(len(data)):
-                inputs, real = data[index]
-                # Generate the output with the generator
-                # generated = model(inputs, training=False)
-
-                critic_loss = adversarial.train_on_batch(
-                    [real, real], [valid, fake, ignored])
-                raise "fucking finally"
-                critic_avg_losses.append(critic_loss)
-
-                print(
-                    f"Epoch {epoch+1} | " +
-                    f"Critic epoch {critic_epoch+1} | " +
-                    f"Batch {index+1}/{len(data)} | " +
-                    f"Batch Loss: {critic_loss} | " +
-                    f"Average Loss: {sum(critic_avg_losses)/len(critic_avg_losses)}"
-                )
-            critic_epoch += 1
-            print("")
-            raise "huh?"
-
-
-def train_birdseye_encoder_with_discriminator3(
-    camera_type: str,
-    epochs: int,
-    batch_size: int,
-    dataset_folder: str,
-    validation_size: float = 0.25,
-    checkpoint_directory: str = "./checkpoints/",
-    logdir: str = "./logdir",
-    critic_trains_per_generator: int = 5,
-):
-    data = Dataloader(batch_size, dataset_folder, camera_type)
-    Path(f"{checkpoint_directory}/models").mkdir(parents=True, exist_ok=True)
+    # Ensure that our checkpoints directory is set
+    Path(f"{checkpoint_directory}/").mkdir(parents=True, exist_ok=True)
 
     # Setup the encoder/decoder model
     model = EncoderDecoder(Encoder(), Decoder())
     # Critic model
     critic = Critic()
 
-    total_epochs = 0
-    critic_epoch = 0
-    generator_epoch = 0
-
     critic.compile(
         loss=MeanSquaredError(),
-        optimizer=Adam(learning_rate=0.0002)
+        optimizer=Adam(learning_rate=0.0001)
     )
     model.compile(
         loss=partial(generator_loss, base_loss=MeanSquaredError(),
                      discriminator=critic),
-        optimizer=Adam(learning_rate=0.0002)
+        optimizer=Adam(learning_rate=0.0001)
     )
-    model.run_eagerly = True
 
+    # If we have a checkpoints directory, load the last step and resume
+    # training from where we left off
+    starting_epoch = 0
+    critic_epochs = 0
+    if len(os.listdir(checkpoint_directory)) >= 1:
+        model, critic, epoch = load_encoder_decoder_critic_checkpoint(
+            checkpoint_directory,
+            model,
+            critic,
+        )
+        starting_epoch = epoch
+        critic_epochs = epoch * critic_trains_per_generator
+        print(f"Resuming training from epoch {epoch}")
+
+    # Results precoded for real/generations
+    # 1 for real, -1 for generated
     real = np.ones((batch_size, 1), dtype=np.float32)
     fake = -1*np.ones((batch_size, 1), dtype=np.float32)
 
-    for epoch in range(epochs):
+    for epoch in range(starting_epoch, epochs):
         critic_avg_losses = []
         generator_avg_losses = []
 
         # Make the critic trainable, the generator not trainable
         trainable_toggle(critic, True)
         trainable_toggle(model, False)
+        # Turn off data augmentation for the critic steps
+        data.apply_data_augmentation = False
 
+        # Train the critic multiple times per generator training epoch
         for _ in range(critic_trains_per_generator):
             for index in range(len(data)):
                 raw_imgs, expected_out = data[index]
                 # Generate the output with the generator
                 generated = model(raw_imgs, training=False)
 
+                # Calculate our losses
                 critic_loss_real = critic.train_on_batch(
                     expected_out, real
                 )
@@ -273,17 +135,21 @@ def train_birdseye_encoder_with_discriminator3(
 
                 print(
                     f"Epoch {epoch+1} | " +
-                    f"Critic epoch {critic_epoch+1} | " +
+                    f"Critic epoch {critic_epochs+1} | " +
                     f"Batch {index+1}/{len(data)} | " +
                     f"Batch Loss: {loss_combined} | " +
                     f"Average Loss: {sum(critic_avg_losses)/len(critic_avg_losses)}",
                     end="\r"
                 )
-            critic_epoch += 1
+            critic_epochs += 1
         print("")
 
+        # Swap the trainability - critic is no longer trainable, generator
+        # will be trained now
         trainable_toggle(critic, False)
         trainable_toggle(model, True)
+        # Turn on data augmentation for the generator steps
+        data.apply_data_augmentation = True
 
         for index in range(len(data)):
             raw_imgs, expected_out = data[index]
@@ -302,13 +168,47 @@ def train_birdseye_encoder_with_discriminator3(
 
         print("")
 
-        # Save the models by epoch
+        # Validation run
+        trainable_toggle(model, False)
+        validation_losses = []
+        for index in range(len(validation_data)):
+            raw_imgs, expected_out = data[index]
+            generated = model(raw_imgs)
+            loss = generator_loss(expected_out, generated,
+                                  MeanAbsoluteError(), critic)
+            validation_losses.append(loss[0])
+
+        print(
+            f"Validation loss for generator for epoch {epoch+1} " +
+            f"is {sum(validation_losses)/len(validation_losses)}"
+        )
+
+        # Save our progress thusfar
         critic.save_weights(
-            f"{checkpoint_directory}/models/critic_{epoch+1}.h5")
+            f"{checkpoint_directory}/critic_{epoch+1}.h5")
         model.save_weights(
-            f"{checkpoint_directory}/models/encoderdecoder_{epoch+1}.h5")
+            f"{checkpoint_directory}/encoderdecoder_{epoch+1}.h5")
 
     return model
+
+
+def load_encoder_decoder_critic_checkpoint(checkpoint_dir: str, generator, critic):
+    files = os.listdir(checkpoint_dir)
+    files = [file for file in files if file.endswith(
+        ".h5") and file.startswith("critic_")]
+    highest_epoch = 0
+    for filename in files:
+        splits = filename.split("_")
+        epoch = splits[1].split(".")
+        if int(epoch) > highest_epoch:
+            highest_epoch = int(epoch)
+
+    generator.load_weights(os.path.join(
+        checkpoint_dir, f"generator_{highest_epoch}.h5"))
+    critic.load_weights(os.path.join(
+        checkpoint_dir, f"critic_{highest_epoch}.h5"))
+
+    return generator, critic, highest_epoch
 
 
 class InterpolateLayer(Layer):

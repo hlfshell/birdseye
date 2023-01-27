@@ -4,8 +4,6 @@ from birdseye.encoder.model import Decoder, Discriminator, Encoder
 from birdseye.encoder.train import (
     train_birdseye_encoder,
     train_birdseye_encoder_with_discriminator,
-    train_birdseye_encoder_with_discriminator2,
-    train_birdseye_encoder_with_discriminator3,
 )
 from birdseye.naive.model import BirdsEyeNaive
 from birdseye.naive.train import train_birdseye_naive
@@ -27,7 +25,7 @@ def train_encoder_decoder():
 
 
 def train_enc_dec_disc():
-    model = train_birdseye_encoder_with_discriminator3(
+    model = train_birdseye_encoder_with_discriminator(
         "front",
         250,
         8,
