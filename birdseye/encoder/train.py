@@ -1,26 +1,17 @@
 import os
 from functools import partial
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
-import tensorflow as tf
-from keras import Model
 from keras import backend as K
 from keras.callbacks import BackupAndRestore, ModelCheckpoint, TensorBoard
 from keras.layers import Input, Layer
 from keras.losses import MeanAbsoluteError, MeanSquaredError
 from keras.optimizers import Adam
-from tensorflow import GradientTape
+from PIL import Image
 
 from birdseye.encoder.dataset import Dataloader
-from birdseye.encoder.model import (
-    Critic,
-    Decoder,
-    Discriminator,
-    Encoder,
-    EncoderDecoder,
-)
+from birdseye.encoder.model import Critic, Decoder, Encoder, EncoderDecoder
 from birdseye.utils import tensor_to_image
 
 
@@ -168,8 +159,13 @@ def train_birdseye_encoder_with_discriminator(
 
         print("")
 
-        # Validation run
+        # We freeze training on the generator for now
         trainable_toggle(model, False)
+
+        # Generate an output image with the model for tracking progress
+        draw_progress(model, epoch, camera_type, dataset_folder)
+
+        # Validation run
         validation_losses = []
         for index in range(len(validation_data)):
             raw_imgs, expected_out = data[index]
@@ -215,6 +211,39 @@ def load_encoder_decoder_critic_checkpoint(checkpoint_dir: str, generator, criti
         checkpoint_dir, f"critic_{highest_epoch}.h5"))
 
     return generator, critic, highest_epoch
+
+
+def draw_progress(generator, epoch: int, camera_type: str, dataset_folder: str):
+    # Grab our images for drawing
+    # Grab the first N images alphabetically, so it's the same list
+    # between runs (as validation/dataset is randomized on create)
+    # in fact I'm repeating a lot of code here just to keep the images
+    # the same which is annoying. This can definitely be cleaned up.
+    Path("./model_progress/").mkdir(parents=True, exist_ok=True)
+    N = 10
+    files = os.listdir(os.path.join(dataset_folder, "input"))
+    files = [file for file in files if file.endswith(
+        ".png") and camera_type in file]
+    files = files[0:N]
+
+    imgs = [Image.open(os.path.join(dataset_folder, "input", file)
+                       ).resize((256, 256)).convert('RGB') for file in files]
+
+    input_tensor = np.zeros((N, 256, 256, 3))
+    for index, img in enumerate(imgs):
+        input_tensor[index] = np.asarray(img)
+
+    # Get the generator's outputs
+    generated = generator(input_tensor)
+
+    # Now we build the output image
+    out = Image.new('RGB', (256*2, 256*N))
+
+    for index, img in enumerate(imgs):
+        out.paste(img, (0, 256*index))
+        out.paste(tensor_to_image(generated[index]), (256, 256*index))
+
+    out.save(f"./model_progress/{epoch+1}.png")
 
 
 class InterpolateLayer(Layer):
