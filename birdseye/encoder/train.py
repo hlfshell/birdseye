@@ -62,7 +62,7 @@ def train_birdseye_encoder_with_discriminator(
     dataset_folder: str,
     validation_size: float = 0.25,
     checkpoint_directory: str = "./checkpoints/",
-    critic_trains_per_generator: int = 1,
+    critic_trains_per_generator: int = 5,
 ):
     data = Dataloader(batch_size, dataset_folder, camera_type)
     # Split off 15% of our dataset for validation testing
@@ -187,7 +187,7 @@ def train_birdseye_encoder_with_discriminator(
         critic.save_weights(
             f"{checkpoint_directory}/critic_{epoch+1}.h5")
         model.save_weights(
-            f"{checkpoint_directory}/encoderdecoder_{epoch+1}.h5")
+            f"{checkpoint_directory}/generator_{epoch+1}.h5")
 
     return model
 
@@ -199,9 +199,15 @@ def load_encoder_decoder_critic_checkpoint(checkpoint_dir: str, generator, criti
     highest_epoch = 0
     for filename in files:
         splits = filename.split("_")
-        epoch = splits[1].split(".")
+        epoch = splits[1].split(".")[0]
         if int(epoch) > highest_epoch:
             highest_epoch = int(epoch)
+
+    # The trainable setting for models must match the way they were set
+    # at time of save. Thus, since both models are set to not trainagble
+    # prior to saving, we do that here now when loading weights.
+    trainable_toggle(generator, False)
+    trainable_toggle(critic, False)
 
     generator.load_weights(os.path.join(
         checkpoint_dir, f"generator_{highest_epoch}.h5"))
